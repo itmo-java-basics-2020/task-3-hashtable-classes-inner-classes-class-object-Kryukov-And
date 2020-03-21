@@ -11,18 +11,11 @@ public class HashTable {
     private double loadFactor;
 
     public HashTable() {
-        array = new Entry[INITIAL_CAPACITY];
-        this.loadFactor = INITIAL_LOADFACTOR;
-    }
-
-    public HashTable(int size) {
-        array = new Entry[INITIAL_CAPACITY];
-        this.loadFactor = INITIAL_LOADFACTOR;
+        this(INITIAL_CAPACITY, INITIAL_LOADFACTOR);
     }
 
     public HashTable(double loadFactor) {
-        array = new Entry[INITIAL_CAPACITY];
-        this.loadFactor = loadFactor;
+        this(INITIAL_CAPACITY, INITIAL_LOADFACTOR);
     }
 
     public HashTable(int size, double loadFactor) {
@@ -31,60 +24,68 @@ public class HashTable {
     }
 
     Object put(Object key, Object value) {
-        int ind = getInd(key);
+        int ind = getIndex(key);
 
         Entry old = array[ind];
         array[ind] = new Entry(key, value);
 
-        if (old == null || old.deleted) {
+        if (checkNullOrDeleted(old)) {
             size++;
-            resize();
+            resizeIfNeeded();
             return null;
-        } else {
-            return old.value;
         }
+
+        return old.value;
     }
 
     Object get(Object key) {
-        int ind = getInd(key);
+        int ind = getIndex(key);
 
-        if (array[ind] == null || array[ind].deleted) {
+        if (checkNullOrDeleted(array[ind])) {
             return null;
-        } else {
-            return array[ind].value;
         }
+        return array[ind].value;
     }
 
     Object remove(Object key) {
-        int ind = getInd(key);
+        int ind = getIndex(key);
 
-        if (array[ind] == null || array[ind].deleted) {
+        if (checkNullOrDeleted(array[ind])) {
             return null;
-        } else {
-            array[ind].deleted = true;
-            size--;
-            return array[ind].value;
         }
+
+        array[ind].deleted = true;
+        size--;
+        return array[ind].value;
     }
 
     int size() {
         return size;
     }
 
-    private void resize() {
-        if (size >= loadFactor * array.length) {
-            Entry[] newArray = array;
-            array = new Entry[newArray.length * 2];
+    private boolean checkNullOrDeleted(Entry obj) {
+        if (obj == null || obj.deleted) {
+            return true;
+        }
+        return false;
+    }
 
-            for (int i = 0; i < newArray.length; i++) {
-                if (newArray[i] != null && !newArray[i].deleted) {
-                    array[getInd(newArray[i].key)] = newArray[i];
-                }
+    private void resizeIfNeeded() {
+        if (size < loadFactor * array.length) {
+            return;
+        }
+
+        Entry[] newArray = array;
+        array = new Entry[newArray.length * 2];
+
+        for (int i = 0; i < newArray.length; i++) {
+            if (!checkNullOrDeleted(newArray[i])) {
+                array[getIndex(newArray[i].key)] = newArray[i];
             }
         }
     }
 
-    private int getInd(Object key) {
+    private int getIndex(Object key) {
         int hc = Math.abs(key.hashCode() % array.length);
 
         while (array[hc] != null && !array[hc].key.equals(key)) {
@@ -96,7 +97,7 @@ public class HashTable {
 
 
     private class Entry {
-        private Object key;
+        private final Object key;
         private Object value;
         private boolean deleted;
 
